@@ -263,7 +263,7 @@ def check_logs():
         if banned_ips:
             for ip in sorted(list(banned_ips)):
                 banned_summary += f" • `{ip}`\n"
-            banned_summary += f"\nYasaklama süresi: ${BAN_TIME} (Fail2Ban ayarı)\n"
+            banned_summary += f"\nYasaklama süresi: 2400 saat (Fail2Ban ayarı)\n"
         else:
             banned_summary += " • Bu dönemde yeni IP yasaklanmadı.\n"
             

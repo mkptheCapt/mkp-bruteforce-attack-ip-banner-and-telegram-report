@@ -40,7 +40,7 @@ read_user_input() {
     
     # Telegram Bot Token'ı iste
     while [[ -z "$TELEGRAM_TOKEN" ]]; do
-        read -p "$(echo -e "${YELLOW}Telegram Bot Token (Örn: 1234...:AAABBB...):${NC} ")" TELEGRAM_TOKEN
+        read -p "$(echo -e "${YELLOW}Telegram Bot Token (Örn: 1234...:AAABBB...):${NC} "${NC} ")" TELEGRAM_TOKEN
         if [[ -z "$TELEGRAM_TOKEN" ]]; then
             log_error "Bot Token boş bırakılamaz. Lütfen tekrar giriniz."
         fi
@@ -48,7 +48,7 @@ read_user_input() {
 
     # Telegram Chat ID'yi iste
     while [[ -z "$CHAT_ID" ]]; do
-        read -p "$(echo -e "${YELLOW}Telegram Chat ID (Örn: 1068...):${NC} ")" CHAT_ID
+        read -p "$(echo -e "${YELLOW}Telegram Chat ID (Örn: 1068...):${NC} "${NC} ")" CHAT_ID
         if [[ -z "$CHAT_ID" ]]; then
             log_error "Chat ID boş bırakılamaz. Lütfen tekrar giriniz."
         fi
@@ -119,6 +119,7 @@ JSON
 
     # c. Python betiğini oluştur
     log_info "Python betiği (${SCRIPT_FILE}) oluşturuluyor..."
+    # Burası Python kodu, girinti hatalarından kaçınmak için tırnak içinde
     sudo tee "${SCRIPT_FILE}" > /dev/null <<'PY'
 #!/usr/bin/env python3
 import time, re, json, os, sys
@@ -191,6 +192,7 @@ def check_logs():
     report_start_dt = datetime.fromtimestamp(report_start_timestamp)
 
     failed_attempts = {}
+    # Dikkat: Python'da \s+ gibi ifadeler için raw string (r'...') kullanmak en iyisidir
     fail_pattern = re.compile(r'(\w+\s+\d+\s+\d{2}:\d{2}:\d{2}).*Failed password for (?:invalid user )?(\S+) from (\S+)')
     
     banned_ips = set()
@@ -200,7 +202,6 @@ def check_logs():
     new_log_pos = state['last_log_pos']
     try:
         with open(AUTH_LOG_PATH, 'r') as f:
-            # Sadece yeni logları oku
             f.seek(state['last_log_pos'])
             new_logs = f.readlines()
             new_log_pos = f.tell() 
@@ -223,7 +224,8 @@ def check_logs():
                             failed_attempts[ip_address] = {'users': set(), 'count': 0}
                         
                         failed_attempts[ip_address]['users'].add(username)
-                        failed_attempts[ip_attempts]['count'] += 1
+                        # Hata düzeltildi: IP'nin sayımını artır
+                        failed_attempts[ip_address]['count'] += 1 
 
     except Exception as e:
         print(f"Auth log file error: {e}")
@@ -244,6 +246,7 @@ def check_logs():
         print(f"Fail2Ban log file error: {e}")
 
     # --- Rapor Oluşturma ve Gönderme ---
+    # Python 3.8+ için, sum ile daha kısa ve temiz
     total_failed_count = sum(data['count'] for data in failed_attempts.values())
     
     if total_failed_count > 0 or banned_ips:
@@ -255,7 +258,8 @@ def check_logs():
         if total_failed_count > 0:
             for ip, data in failed_attempts.items():
                 user_list = ", ".join(sorted(list(data['users'])))
-                failed_summary += f" • IP: `{ip}` ({data['count']} kez). Kullanıcılar: {user_list}\n"
+                # Düzeltilmiş format: 'kez' yerine 'deneme'
+                failed_summary += f" • IP: `{ip}` ({data['count']} deneme). Kullanıcılar: {user_list}\n"
         else:
             failed_summary += " • Başarısız deneme bulunamadı.\n"
         
@@ -263,6 +267,7 @@ def check_logs():
         if banned_ips:
             for ip in sorted(list(banned_ips)):
                 banned_summary += f" • `{ip}`\n"
+            # Hata düzeltildi: BAN_TIME değişkeni kaldırıldı ve sabit değer yazıldı
             banned_summary += f"\nYasaklama süresi: 2400 saat (Fail2Ban ayarı)\n"
         else:
             banned_summary += " • Bu dönemde yeni IP yasaklanmadı.\n"
@@ -281,6 +286,7 @@ def check_logs():
 if __name__ == "__main__":
     check_logs()
 
+# Python kodunu sonlandıran etiket (girintisiz olmalı)
 PY
 
     # d. Betik izinlerini ayarla
@@ -306,7 +312,8 @@ Description=SSH Failed Login Telegram Alert
 
 [Service]
 Type=oneshot 
-ExecStart=${SCRIPT_FILE}
+# KRİTİK DÜZELTME: Betiği açıkça Python 3 ile çalıştırıyoruz
+ExecStart=/usr/bin/python3 ${SCRIPT_FILE}
 User=root
 
 [Install]

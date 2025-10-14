@@ -40,7 +40,7 @@ read_user_input() {
     
     # Telegram Bot Token'ı iste
     while [[ -z "$TELEGRAM_TOKEN" ]]; do
-        read -p "$(echo -e "${YELLOW}Telegram Bot Token (Örn: 1234...:AAABBB...):${NC} "${NC} ")" TELEGRAM_TOKEN
+        read -p "$(echo -e "${YELLOW}Telegram Bot Token (Örn: 1234...:AAABBB...):${NC} ")" TELEGRAM_TOKEN
         if [[ -z "$TELEGRAM_TOKEN" ]]; then
             log_error "Bot Token boş bırakılamaz. Lütfen tekrar giriniz."
         fi
@@ -48,7 +48,7 @@ read_user_input() {
 
     # Telegram Chat ID'yi iste
     while [[ -z "$CHAT_ID" ]]; do
-        read -p "$(echo -e "${YELLOW}Telegram Chat ID (Örn: 1068...):${NC} "${NC} ")" CHAT_ID
+        read -p "$(echo -e "${YELLOW}Telegram Chat ID (Örn: 1068...):${NC} ")" CHAT_ID
         if [[ -z "$CHAT_ID" ]]; then
             log_error "Chat ID boş bırakılamaz. Lütfen tekrar giriniz."
         fi

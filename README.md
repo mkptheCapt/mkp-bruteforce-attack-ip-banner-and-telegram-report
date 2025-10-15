@@ -43,5 +43,4 @@ Kurulum tamamlandığında, betik size $Kurulum Başarılı!$ mesajını göster
 Artık yeni VPS'inizde de aynı güçlü güvenlik ve raporlama sistemine sahipsiniz!
 
 Telegram Raporlama örnek ekranı:
-[url=https://ibb.co/V0wk4Cjf][img]https://i.ibb.co/PsDVHWmq/image.png[/img][/url]
-
+[imglhttps://i.ibb.co/PsDVHWmq/image.png[/img]

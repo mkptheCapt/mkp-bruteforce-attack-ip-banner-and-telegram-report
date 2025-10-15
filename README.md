@@ -29,9 +29,7 @@ cd mkp-bruteforce-attack-ip-banner-and-telegram-report
 Adım 4: Kurulum Betiğini Çalıştırma
 Şimdi, önceki adımda hazırladığımız ve sizden Telegram Bot Token ve Chat ID isteyen interaktif betiği çalıştırın.
 
-
 sudo bash install_ssh_alert.sh
-
 
 Betik Çalıştırıldığında Ne Olacak?
  * Betiği çalıştırdıktan sonra sizden sırasıyla Telegram Bot Token ve Telegram Chat ID istenir.
@@ -43,3 +41,7 @@ Betik Çalıştırıldığında Ne Olacak?
    * Tüm servisler başlatılır.
 Kurulum tamamlandığında, betik size $Kurulum Başarılı!$ mesajını gösterecektir.
 Artık yeni VPS'inizde de aynı güçlü güvenlik ve raporlama sistemine sahipsiniz!
+
+Telegram Raporlama örnek ekranı:
+[url=https://ibb.co/V0wk4Cjf][img]https://i.ibb.co/PsDVHWmq/image.png[/img][/url]
+

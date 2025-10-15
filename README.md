@@ -42,10 +42,6 @@ Betik Çalıştırıldığında Ne Olacak?
 Kurulum tamamlandığında, betik size $Kurulum Başarılı!$ mesajını gösterecektir.
 Artık yeni VPS'inizde de aynı güçlü güvenlik ve raporlama sistemine sahipsiniz!
 
-Telegram Raporlama örnek ekranı:  https://i.ibb.co/PsDVHWmq/image.png
-
+Telegram Raporlama örnek ekranı: 
 
 <a href="https://ibb.co/V0wk4Cjf"><img src="https://i.ibb.co/PsDVHWmq/image.png" alt="image" border="0"></a>
-
-
-[img]https://i.ibb.co/PsDVHWmq/image.png[/img]

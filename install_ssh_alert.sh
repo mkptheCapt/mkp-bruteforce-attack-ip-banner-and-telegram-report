@@ -225,7 +225,8 @@ def check_logs():
     # auth.log desenleri (Failed password for .. from ..)
     fail_pattern = re.compile(r'(\w+\s+\d+\s+\d{2}:\d{2}:\d{2}).*Failed password for (?:invalid user )?(\S+) from (\S+)')
     banned_ips = set()
-    ban_pattern = re.compile(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}).*NOTICE\s+\[sshd\]\s+Ban\s+(\S+)')
+    # millisecond kısmı opsiyonel: ",123" olabilir
+    ban_pattern = re.compile(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:,\d+)? .*NOTICE\s+\[sshd\]\s+Ban\s+(\S+)')
 
     # auth.log oku (sadece yeni satırlar)
     new_log_pos = state['last_log_pos']
@@ -358,7 +359,7 @@ EOF
 
   if sudo systemctl is-active --quiet ssh-telegram-alert.timer; then
     log_info "Zamanlayıcı başlatıldı ve çalışıyor."
-  else:
+  else
     log_error "Zamanlayıcı başlatılamadı! Kontrol edin: sudo systemctl status ssh-telegram-alert.timer"
     exit 1
   fi
@@ -381,6 +382,7 @@ SERVICE_FILE="/etc/systemd/system/ssh-telegram-alert.service"
 TIMER_FILE="/etc/systemd/system/ssh-telegram-alert.timer"
 FAIL2BAN_JAIL="/etc/fail2ban/jail.local"
 HELP_BIN="/usr/local/bin/help_ipban"
+FAIL2BAN_LOG="/var/log/fail2ban.log"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 
@@ -546,9 +548,7 @@ manual_run_now() {
 }
 
 stop_program() {
-  # --- Türkçe açıklama ---
   # Programın çalışmasını durdurmak için timer'ı durdurmak yeterlidir.
-  # Servis oneshot olduğundan sadece tetiklenir; timer durunca raporlama da durur.
   require_root
   sudo systemctl stop ssh-telegram-alert.timer
   echo -e "${GREEN}[OK]${NC} Programın çalışması durduruldu."
@@ -603,79 +603,64 @@ uninstall_program() {
   echo "Gerekirse yeniden kurmak için kurulum betiğini (install_ssh_alert.sh) tekrar çalıştırabilirsiniz."
 }
 
+show_ban_history() {
+  require_root
+  # --- Türkçe açıklama ---
+  # Fail2Ban logundan [sshd] Ban kayıtlarını çekip tablo halinde gösterir.
+  # Zaman damgasında milisaniye (",123") olabilir; regex bunu opsiyonel kabul eder.
+  python3 - <<PY
+import re, sys
+log_path = "/var/log/fail2ban.log"
+pattern = re.compile(r'(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})(?:,\\d+)? .*?\\[sshd\\]\\s+Ban\\s+(\\S+)')
+rows=[]
+try:
+    with open(log_path,'r') as f:
+        for line in f:
+            m = pattern.search(line)
+            if m:
+                ts, ip = m.groups()
+                rows.append((ts, ip))
+except FileNotFoundError:
+    print(f"Fail2Ban log dosyası bulunamadı: {log_path}")
+    sys.exit(0)
+
+if not rows:
+    print("Hiç ban kaydı bulunamadı.")
+else:
+    # Tablo başlık ve çizgileri
+    print("No  | IP                     | Tarih")
+    print("----+------------------------+---------------------")
+    for i,(ts,ip) in enumerate(rows, start=1):
+        print(f"{i:<3} | {ip:<22} | {ts}")
+PY
+
+  echo
+  echo "Seçenekler:"
+  echo "  1) yardım menüsüne dön"
+  echo "  2) programdan çık"
+  read -p "Seçiminiz: " sel
+  case "$sel" in
+    1)
+      return
+      ;;
+    2)
+      echo -e "${GREEN}[OK]${NC} Programdan çıkılıyor."
+      echo "Tekrar raporlama programını çalıştırmak için:"
+      echo "  sudo systemctl start ssh-telegram-alert.timer"
+      echo "Yardım menüsünü tekrar görüntülemek için:"
+      echo "  sudo help_ipban"
+      exit 0
+      ;;
+    *)
+      echo "Geçersiz seçim. Menüye dönülüyor."
+      return
+      ;;
+  esac
+}
+
 help_menu() {
   echo -e "${GREEN}============================================================${NC}"
   echo -e "${GREEN} help_ipban - SSH saldırı raporlama yardım/ayar menüsü ${NC}"
   echo -e "${GREEN}============================================================${NC}"
   echo "Ayarların kayıt yeri:"
-  echo "  - Config: ${CONFIG_FILE}"
-  echo "  - Fail2Ban: ${FAIL2BAN_JAIL}"
-  echo "  - systemd Timer: ${TIMER_FILE}"
-  echo
-  echo "Menü:"
-  echo "  1) Ayarları görüntüle"
-  echo "  2) Raporlama kaç dakikada bir olsun? (değiştir)"
-  echo "  3) Kaç hatalı girişte IP yasaklansın? (maxretry)"
-  echo "  4) IP yasaklama süresi kaç saat olsun? (bantime)"
-  echo "  5) Raporlamayı şimdi manuel tetikle"
-  echo "  6) Telegram TEST mesajı gönder"
-  echo "  7) Log dosyası yolunu değiştir (auth.log yolu)"
-  echo "  8) IP ban programı çalışmasını durdur"
-  echo "  9) IP ban programını durdur ve sistemden tamamen sil"
-  echo "  q) Çıkış"
-  echo
-
-  while true; do
-    read -p "Seçiminiz: " c
-    case "$c" in
-      1) show_settings ;;
-      2) set_report_minutes ;;
-      3) set_maxretry ;;
-      4) set_bantime_hours ;;
-      5) manual_run_now ;;
-      6) telegram_test_message ;;
-      7) set_log_path ;;
-      8) stop_program ;;
-      9) uninstall_program ;;
-      q|Q) break ;;
-      *) echo "Geçersiz seçim." ;;
-    esac
-    echo
-  done
-}
-
-# Komut adı: help_ipban
-help_ipban() { help_menu; }
-
-# Doğrudan çağrılırsa menüyü aç
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  require_root
-  help_menu
-fi
-HB
-
-  sudo chmod +x "${HELP_BIN}"
-}
-
-# ------------------------------------------------------------
-# Ana Akış
-# ------------------------------------------------------------
-main() {
-  read_user_input
-  setup_fail2ban
-  setup_python_script
-  setup_systemd
-  install_help_menu
-
-  log_info "------------------------------------------------------------"
-  log_info "${GREEN}Kurulum Başarılı!${NC}"
-  log_info "Raporlama her ${REPORT_PERIOD_MIN} dakikada bir otomatik çalışacaktır."
-  log_info "Manuel test çalıştırması için: sudo systemctl start ssh-telegram-alert.service"
-  log_info "Fail2Ban durumu: sudo systemctl status fail2ban"
-  log_info "Raporlama durumu: sudo systemctl status ssh-telegram-alert.timer"
-  # Yardım menüsü komutu
-  log_info "Yardım/Ayar menüsünü açmak için: ${YELLOW}sudo help_ipban${NC}"
-  log_info "------------------------------------------------------------"
-}
-
-main
+  echo "  - Config:
